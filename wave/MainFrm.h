@@ -82,6 +82,7 @@ public:
 		pLoop->AddMessageFilter(this);
 		pLoop->AddIdleHandler(this);
 
+
 		return 0;
 	}
 

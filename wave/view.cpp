@@ -56,6 +56,8 @@ LRESULT CView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOO
 	glDepthFunc(GL_LEQUAL);                  // 所作深度测试的类型  
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);// 告诉系统对透视进行修正  
 
+
+	_tick = 0;
 	return true;
 }
 
@@ -70,6 +72,9 @@ LRESULT CView::OnDestroy(UINT, WPARAM, LPARAM, BOOL &)
 
 LRESULT CView::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
+	PAINTSTRUCT ps;
+	BeginPaint(&ps);
+	EndPaint(&ps);
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_PROJECTION);
@@ -79,11 +84,12 @@ LRESULT CView::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL
 	glLoadIdentity();
 
 	glColor3f(0, 1, 0);
-	glBegin(GL_TRIANGLES);
-	glVertex3f(-1, 0, 0);
-	glVertex3f(0, 0.5, 0);
-	glVertex3f(0, 0.8, 0);
-	glVertex3f(-1, 0.8, 0);
+
+	glBegin(GL_LINE_STRIP);
+	for (float xx = -1.0; xx <= 1.0; xx += 0.05f)
+	{
+		glVertex3d(xx, 0.5 * sinf(2 * 3.14f * xx + _tick), 0);
+	}
 	glEnd();
 
 	glFlush();
