@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <ft2build.h>
+#include "freetype/freetype.h"
+
 class CView : public CWindowImpl<CView>
 {
 public:
@@ -56,9 +59,14 @@ public:
 		Invalidate();
 		return 0;
 	}
+
+	void render_text(const char *text, float x, float y, float sx, float sy);
 private:
 	HGLRC _hGLRC;
 	HDC _hDC;
 	unsigned int _tick;
 	bool _timer;
+
+	FT_Library _ftLib;
+	FT_Face _ftFace;
 };

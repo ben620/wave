@@ -1,6 +1,10 @@
 #include "stdafx.h"
-#include "View.h"
 #include <gl\GL.h>
+#include "gl/glext.h"
+#include "View.h"
+#include <cstring>
+
+#pragma comment(lib, "freetyped.lib")
 
 LRESULT CView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
@@ -56,9 +60,67 @@ LRESULT CView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOO
 	glDepthFunc(GL_LEQUAL);                  // 所作深度测试的类型  
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);// 告诉系统对透视进行修正  
 
-
 	_tick = 0;
+
+	//init freetype
+	if (FT_Init_FreeType(&_ftLib))
+	{
+		return false;
+	}
+
+	if (FT_New_Face(_ftLib, "FreeSans.ttf", 0, &_ftFace))
+	{
+		return false;
+	}
+
+	FT_Set_Pixel_Sizes(_ftFace, 0, 24);
+
+	if (FT_Load_Char(_ftFace, 'X', FT_LOAD_RENDER))
+	{
+		return false;
+	}
+
+	
 	return true;
+}
+
+
+void CView::render_text(const char *text, float x, float y, float sx, float sy) {
+	const char *p;
+	for (p = text; *p; p++) {
+		if (FT_Load_Char(_ftFace, *p, FT_LOAD_RENDER))
+			continue;
+		FT_GlyphSlot g = _ftFace->glyph;
+		glTexImage2D(
+			GL_TEXTURE_2D,
+			0,
+			GL_RED,
+			g->bitmap.width,
+			g->bitmap.rows,
+			0,
+			GL_RED,
+			GL_UNSIGNED_BYTE,
+			g->bitmap.buffer
+		);
+
+		float x2 = x + g->bitmap_left * sx;
+		float y2 = -y - g->bitmap_top * sy;
+		float w = g->bitmap.width * sx;
+		float h = g->bitmap.rows * sy;
+
+		GLfloat box[4][4] = {
+			{x2,     -y2    , 0, 0},
+			{x2 + w, -y2    , 1, 0},
+			{x2,     -y2 - h, 0, 1},
+			{x2 + w, -y2 - h, 1, 1},
+		};
+
+		glBufferData(GL_ARRAY_BUFFER, sizeof box, box, GL_DYNAMIC_DRAW);
+		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+		x += (g->advance.x / 64) * sx;
+		y += (g->advance.y / 64) * sy;
+	}
 }
 
 LRESULT CView::OnDestroy(UINT, WPARAM, LPARAM, BOOL &)
@@ -91,6 +153,8 @@ LRESULT CView::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL
 		glVertex3d(xx, 0.5 * sinf(2 * 3.14f * xx + _tick), 0);
 	}
 	glEnd();
+
+	render_text("ben", 0, 0, 0.1, 0.1);
 
 	glFlush();
 	SwapBuffers(_hDC);
