@@ -3,10 +3,40 @@
 #include "gl/glext.h"
 #include "View.h"
 #include <cstring>
+#include <Windows.h>
+#include "GlBase.h"
 
-#pragma comment(lib, "freetyped.lib")
+#pragma comment(lib, "freetype.lib")
 
-LRESULT CView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+GLuint prog;
+
+unsigned char* readBMP(char* filename, int &width, int &height)
+{
+	int i;
+	FILE* f = fopen(filename, "rb");
+	unsigned char info[54];
+	fread(info, sizeof(unsigned char), 54, f); // read the 54-byte header
+
+	// extract image height and width from header
+	width = *(int*)& info[18];
+	height = *(int*)& info[22];
+
+	int size = 3 * width * height;
+	unsigned char* data = new unsigned char[size]; // allocate 3 bytes per pixel
+	fread(data, sizeof(unsigned char), size, f); // read the rest of the data at once
+	fclose(f);
+
+	for (i = 0; i < size; i += 3)
+	{
+		unsigned char tmp = data[i];
+		data[i] = data[i + 2];
+		data[i + 2] = tmp;
+	}
+
+	return data;
+}
+
+LRESULT CView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled)
 {
 	PIXELFORMATDESCRIPTOR pfd;
 	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);//上述格式描述符的大小
@@ -68,19 +98,39 @@ LRESULT CView::OnCreate(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOO
 		return false;
 	}
 
-	if (FT_New_Face(_ftLib, "FreeSans.ttf", 0, &_ftFace))
+	if (FT_New_Face(_ftLib, "segoepr.ttf", 0, &_ftFace))
 	{
 		return false;
 	}
+	
 
 	FT_Set_Pixel_Sizes(_ftFace, 0, 24);
 
-	if (FT_Load_Char(_ftFace, 'X', FT_LOAD_RENDER))
+	if (FT_Load_Char(_ftFace, '0', FT_LOAD_RENDER) || FT_Render_Glyph(_ftFace->glyph, FT_RENDER_MODE_NORMAL))
 	{
 		return false;
 	}
+	glEnable(GL_TEXTURE_2D);
+	glGenTextures(1, &_tex);
+	glBindTexture(GL_TEXTURE_2D, _tex);
+	glActiveTexture(GL_TEXTURE0);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	
+	int width = 0;
+	int height = 0;
+	unsigned char * data = readBMP("D:/img/70908446147.bmp", width, height);
+
+	//const FT_Bitmap &bmp = _ftFace->glyph->bitmap;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	delete[] data;
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	GlBase base;
+	prog = base.CreateShaderProg("vert.txt", "frag.txt");
 	return true;
 }
 
@@ -138,6 +188,7 @@ LRESULT CView::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL
 	BeginPaint(&ps);
 	EndPaint(&ps);
 
+	glClearColor(0, 0.8, 0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -154,7 +205,19 @@ LRESULT CView::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL
 	}
 	glEnd();
 
-	render_text("ben", 0, 0, 0.1, 0.1);
+	glColor3f(1, 1, 1);
+	glBindTexture(GL_TEXTURE_2D, _tex);
+	glBegin(GL_QUADS);
+	glTexCoord2f(1.0, 1.0); glVertex3f(-1.0, 1.0, 0.0);
+	glTexCoord2f(0.0, 1.0); glVertex3f(-1.0, -1.0, 0.0);
+	glTexCoord2f(0.0, 0.0); glVertex3f(1.0, -1.0, 0.0);
+	glTexCoord2f(1.0, 0.0); glVertex3f(1.0, 1.0, 0.0);
+	glEnd();
+
+
+	glUseProgram(prog);
+
+	glUseProgram(0);
 
 	glFlush();
 	SwapBuffers(_hDC);

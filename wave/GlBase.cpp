@@ -55,9 +55,12 @@ unsigned int GlBase::CompileShader(const std::string &path, int shader)
 
 unsigned int GlBase::CreateShaderProg(const std::string &vertex, const std::string &fragment)
 {
-	CompileShader(vertex, GL_VERTEX_SHADER) ;
-	CompileShader(fragment, GL_FRAGMENT_SHADER);
+	GLuint vID = CompileShader(vertex, GL_VERTEX_SHADER) ;
+	GLuint fID = CompileShader(fragment, GL_FRAGMENT_SHADER);
 
 	unsigned int prog = glCreateProgram();
-	return true;
+	glAttachShader(prog, vID);
+	glAttachShader(prog, fID);
+	glLinkProgram(prog);
+	return prog;
 }

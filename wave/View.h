@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <ft2build.h>
-#include "freetype/freetype.h"
+#include "freetype/ft2build.h"
+#include FT_FREETYPE_H
 
 class CView : public CWindowImpl<CView>
 {
@@ -69,4 +69,6 @@ private:
 
 	FT_Library _ftLib;
 	FT_Face _ftFace;
+	unsigned int _tex;
+	unsigned int _vbo;
 };
