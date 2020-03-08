@@ -68,7 +68,6 @@ bool LibBitmap::ReadFile(const char *path)
 	_width = bmpIH.biWidth;
 	_height = bmpIH.biHeight;
 
-
 	const int paddingRowSize = ((_width * 3 + 3) >> 2) << 2;
 	const int actualRowSize = _width * 3;
 	_data = new unsigned char[_width * _height * 3];
@@ -76,7 +75,7 @@ bool LibBitmap::ReadFile(const char *path)
 	for (int ii = 0; ii < _height; ++ii)
 	{
 		fread(&_data[(_height - 1 - ii) * actualRowSize], actualRowSize, 1, file);
-		fread(&paddingData, 1, paddingRowSize - paddingRowSize, file);
+		fread(&paddingData, 1, paddingRowSize - actualRowSize, file);
 	}
 
 	fclose(file);
@@ -134,7 +133,7 @@ bool LibBitmap::WriteFile(const char *name)
 	for (int ii = _height - 1; ii >= 0; --ii)
 	{
 		fwrite(&_data[ii * origRowSize], origRowSize, 1, file);
-		fwrite(&padding, 1, padding, file);
+		fwrite(&padding, 1, padingSize, file);
 	}
 
 	fclose(file);
